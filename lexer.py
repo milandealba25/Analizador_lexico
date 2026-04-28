@@ -6,17 +6,15 @@
 # - Luis Omar Olmedo
 
 # ---------- STATES ----------
-# Each constant represents a DFA state
 START = "START"
 IDENTIFIER = "IDENTIFIER"
 NUMBER = "NUMBER"
 FLOAT = "FLOAT"
-STRING_DQ = "STRING_DQ"   # "string"
-STRING_SQ = "STRING_SQ"   # 'string'
-STRING_BT = "STRING_BT"   # `string`
-COMMENT_SL = "COMMENT_SL" # // comment
-COMMENT_ML = "COMMENT_ML" # /* comment */
-
+STRING_DQ = "STRING_DQ"
+STRING_SQ = "STRING_SQ"
+STRING_BT = "STRING_BT"
+COMMENT_SL = "COMMENT_SL"
+COMMENT_ML = "COMMENT_ML"
 
 # ---------- DEFINITIONS ----------
 KEYWORDS = {
@@ -28,23 +26,19 @@ KEYWORDS = {
 
 BOOLEANS = {"true", "false"}
 
-# Valid operators (1–3 chars)
 OPERATORS = {
     "+", "-", "*", "/", "%", "=", "==", "===", "!=", "!==",
     "<", ">", "<=", ">=", "&&", "||", "!", "++", "--",
     "+=", "-=", "*=", "/=", "%="
 }
 
-# Symbols that must be balanced
 OPENING = {'(': ')', '{': '}', '[': ']'}
 CLOSING = {')': '(', '}': '{', ']': '['}
 
-# All possible starting characters for operators
 OPERATOR_START = set(op[0] for op in OPERATORS)
 
 
 # ---------- HELPERS ----------
-# Classify identifier into keyword / boolean / name
 def classify_identifier(lexeme):
     if lexeme in BOOLEANS:
         return "BOOLEAN"
@@ -53,7 +47,6 @@ def classify_identifier(lexeme):
     return "NAME"
 
 
-# Match longest operator (3 → 2 → 1 chars)
 def match_operator(text, i):
     for length in (3, 2, 1):
         if i + length <= len(text):
@@ -66,16 +59,17 @@ def match_operator(text, i):
 # ---------- LEXER ----------
 def lexer(text):
     state = START
-    lexeme = ""   # current token being built
-    items = []    # unified output: (TOKEN, VALUE, ERROR)
-    stack = []    # used for symbol balancing
+    lexeme = ""
+    items = []
+    stack = []
+
     invalid_identifier = False
+    prev_token_type = None  # <-- IMPORTANT
 
     i = 0
     while i < len(text):
         c = text[i]
 
-        # -------- START --------
         if state == START:
 
             if c.isalpha() or c == "_":
@@ -95,7 +89,6 @@ def lexer(text):
             elif c == "`":
                 state = STRING_BT
 
-            # ---- COMMENTS ----
             elif c == "/":
                 if i + 1 < len(text):
                     if text[i+1] == "/":
@@ -107,11 +100,12 @@ def lexer(text):
                         i += 2
                         continue
                 items.append(("OPERATOR", "/", ""))
+                prev_token_type = "OPERATOR"
 
-            # ---- SYMBOLS ----
             elif c in OPENING:
                 stack.append(c)
                 items.append(("SYMBOL", c, ""))
+                prev_token_type = "SYMBOL"
 
             elif c in CLOSING:
                 if not stack or stack[-1] != CLOSING[c]:
@@ -119,36 +113,26 @@ def lexer(text):
                 else:
                     stack.pop()
                     items.append(("SYMBOL", c, ""))
+                prev_token_type = "SYMBOL"
 
-            # ---- OPERATORS ----
+            # -------- OPERATOR --------
             elif c in OPERATOR_START:
                 temp = ""
 
-                # collect consecutive operator chars
                 while i < len(text) and text[i] in OPERATOR_START:
                     temp += text[i]
                     i += 1
 
-                # validate sequence
-                j = 0
-                valid = True
-                while j < len(temp):
-                    found = False
-                    for l in (3, 2, 1):
-                        if j + l <= len(temp) and temp[j:j+l] in OPERATORS:
-                            j += l
-                            found = True
-                            break
-                    if not found:
-                        valid = False
-                        break
+                # If previous token was also operator → ERROR
+                if prev_token_type == "OPERATOR":
+                    items.append(("OPERATOR", temp, "Operadores consecutivos no permitidos"))
+                    continue
 
-                if valid and j == len(temp):
-                    j = 0
-                    while j < len(temp):
-                        op, length = match_operator(temp, j)
-                        items.append(("OPERATOR", op, ""))
-                        j += length
+                op, length = match_operator(temp, 0)
+
+                if op and length == len(temp):
+                    items.append(("OPERATOR", op, ""))
+                    prev_token_type = "OPERATOR"
                 else:
                     items.append(("OPERATOR", temp, "Operador inválido"))
 
@@ -160,7 +144,6 @@ def lexer(text):
             else:
                 items.append(("(desconocido)", c, "Carácter inválido/no reconocido"))
 
-        # -------- IDENTIFIER --------
         elif state == IDENTIFIER:
             if c.isalnum() or c == "_":
                 lexeme += c
@@ -168,14 +151,15 @@ def lexer(text):
                 if invalid_identifier:
                     items.append(("NAME", lexeme, "Identificador inválido: no puede iniciar con dígito"))
                 else:
-                    items.append((classify_identifier(lexeme), lexeme, ""))
+                    token_type = classify_identifier(lexeme)
+                    items.append((token_type, lexeme, ""))
+                    prev_token_type = token_type
 
                 lexeme = ""
                 state = START
                 invalid_identifier = False
                 continue
 
-        # -------- NUMBER --------
         elif state == NUMBER:
             if c.isdigit():
                 lexeme += c
@@ -191,11 +175,11 @@ def lexer(text):
 
             else:
                 items.append(("NUMBER", lexeme, ""))
+                prev_token_type = "NUMBER"
                 lexeme = ""
                 state = START
                 continue
 
-        # -------- FLOAT --------
         elif state == FLOAT:
             if c.isdigit():
                 lexeme += c
@@ -204,16 +188,17 @@ def lexer(text):
                     items.append(("NUMBER", lexeme, "Número flotante inválido"))
                 else:
                     items.append(("NUMBER", lexeme, ""))
+                    prev_token_type = "NUMBER"
                 lexeme = ""
                 state = START
                 continue
 
-        # -------- STRINGS --------
         elif state in (STRING_DQ, STRING_SQ, STRING_BT):
             closing = '"' if state == STRING_DQ else "'" if state == STRING_SQ else "`"
 
             if c == closing:
                 items.append(("STRING", lexeme, ""))
+                prev_token_type = "STRING"
                 lexeme = ""
                 state = START
 
@@ -225,7 +210,6 @@ def lexer(text):
             else:
                 lexeme += c
 
-        # -------- COMMENTS --------
         elif state == COMMENT_SL:
             if c == "\n":
                 state = START
@@ -238,7 +222,7 @@ def lexer(text):
 
         i += 1
 
-    # -------- FINAL CLEANUP --------
+    # cleanup
     if state == IDENTIFIER:
         if invalid_identifier:
             items.append(("NAME", lexeme, "Identificador inválido: no puede iniciar con dígito"))
@@ -257,10 +241,9 @@ def print_table(rows):
     print("-" * 60)
 
     error_count = 0
-
     for t, v, e in rows:
         print(f"{t:<15}{v:<25}{e}")
-        if e:  # count only rows with error message
+        if e:
             error_count += 1
 
     print("-" * 60)
