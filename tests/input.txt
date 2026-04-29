@@ -1,0 +1,125 @@
+# ---------------- SECTION 1: VALID CODE ----------------
+def sum(a, b):
+    result = a + b
+    return result
+
+x = 10
+y = 20.5
+z = x * y + (x - 3) / 2
+flag = True
+none_val = None
+
+my_list = [1, 2, 3, 4]
+my_tuple = (1, 2, 3)
+my_dict = {1: "one", 2: "two"}
+my_set = {1, 2, 3}
+
+if x < y and flag:
+    value = "ok"
+elif x == y:
+    value = "equal"
+else:
+    value = "low"
+
+for i in range(5):
+    pass
+
+while x > 0:
+    x -= 1
+
+int a
+float b
+str name
+list data
+bool flag2
+
+
+# ---------------- SECTION 2: EXPECTED ERRORS ----------------
+x y # consecutive operands
+10 20 # consecutive numbers
+123abc # invalid number (letters)
+12.3.4 # invalid number (multiple dots)
+text = "hello # unclosed string
+
+# bad operator placement
++ 5
+* x
+
+# consecutive operators
+x ++ y
+a ** * b
+
+# unbalanced delimiters
+(1 + 2
+[1, 2, 3
+{1:2
+
+# mismatched closing
+(1 + 2]
+[1, 2)
+
+x = 5 + # ends with operator
+
+# invalid characters
+@
+#
+$
+
+# assignment misuse
+= x
+
+# misplaced logical operator
+and x
+
+# TYPE should not cause operand error
+int x y   # only NAME NAME should trigger
+
+
+# ---------------- SECTION 3: RANDOM / EDGE CASES ----------------
+
+# weird mixes
+x1y2z3
+_abc123
+123_abc
+
+# chained booleans
+True False True
+
+# operators flood
++ - * / // % ** << >> & | ^ ~
+
+# tricky floats
+.5
+5.
+..5
+5..
+
+# nested delimiters (correct)
+(((([[]]))))
+
+# nested delimiters (wrong)
+((([)])))
+
+# strings with symbols
+msg = "hello @ world # test $ ok"
+
+# backtick string (your lexer supports it)
+msg2 = `backtick string`
+
+# broken backtick
+msg3 = `broken
+
+# long invalid sequence
+abc$$$%%%123..abc
+
+# consecutive names deep
+a b c d e
+
+# operator at end again
+y *
+
+# many closings
+))))]
+
+# empty input case below
+
