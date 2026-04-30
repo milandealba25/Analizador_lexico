@@ -42,7 +42,7 @@ ASSIGNMENT_OPS = {"=", "+=", "-=", "*=", "/="}
 
 # ---------------- STORAGE ----------------
 tokens = [] # Output: ID, TOKEN, LEXEME, ERROR
-line = 1 # Keep track of current line for error reporting
+line, error_count = 1, 0 # Global line number and error count for reporting
 
 # ---------------- HELPERS ----------------
 # Reduce boilerplate code
@@ -63,8 +63,7 @@ def lexer(text):
     i = 0
     prev_type = None
     stack = []
-    error_count = 0
-
+    
     while i < len(text):
         c = text[i]
 
@@ -89,10 +88,12 @@ def lexer(text):
 
         # IDENTIFIER / KEYWORD / BOOLEAN / TYPE
         if is_id(c):
+
+            # Determine lexeme length, allowing chars, digits, underscores
             start = i
             while i < len(text) and (is_id(text[i]) or text[i].isdigit()):
                 i += 1
-            lex = text[start:i]
+            lex = text[start:i] # Extracted lexeme
 
             if lex in KEYWORDS:
                 ttype = "BOOLEAN" if lex in BOOLEAN else "KEYWORD"
@@ -212,23 +213,23 @@ def lexer(text):
 
 
 # ---------------- PRINT ----------------
+def boundary(): print("-" * 75) # Table boundary (better readability)
+
 def print_table(error_count):
-    print("\nRESULTADO DEL ANALISIS LEXICO")
-    print("-" * 75)
-    print(f"{'ID':<5}{'TOKEN':<15}{'LEXEME':<25}{'ERROR'}")
-    print("-" * 75)
-
-    for t in tokens:
-        print(f"{t[0]:<5}{t[1]:<15}{t[2]:<25}{t[3]}")
-
-    print("-" * 75)
-    print(f"{error_count} error(es) encontrados\n")
+    print("\nANALISIS LEXICO") # Table title
+    boundary()
+    print(f"{'ID':<5}{'TOKEN':<15}{'LEXEME':<25}{'ERROR'}") # Table header
+    boundary()
+    for t in tokens: print(f"{t[0]:<5}{t[1]:<15}{t[2]:<25}{t[3]}") # Table rows
+    boundary()
+    print(f"{error_count} error(es) encontrados\n") # Errors found
 
 
 # ---------------- MAIN ----------------
 def main():
     with open("tests\\input.txt", "r") as f:
         text = f.read()
+    f.close()
 
     errors = lexer(text)
     print_table(errors)
