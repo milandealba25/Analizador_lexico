@@ -193,7 +193,7 @@ def lexer(text):
                     stack.pop()
 
             add_token(TOK[c], "SYMBOL", c)
-            prev_type = None
+            prev_type = "OPERAND" if c in CLOSING else None # Mark closing delimiters as operands
             i += 1
             continue
 
